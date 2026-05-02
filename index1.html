@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#1a56db">
+  <title>คำนวณค่าเช่า</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    :root{
+      --blue:#1a56db;--blue-dark:#1e3a8a;--blue-light:#dbeafe;
+      --green:#15803d;--green-light:#dcfce7;
+      --red:#dc2626;--amber:#d97706;--amber-light:#fef3c7;
+      --gray-50:#f8fafc;--gray-100:#f1f5f9;--gray-200:#e2e8f0;
+      --gray-400:#94a3b8;--gray-500:#64748b;--gray-700:#334155;--gray-800:#1e293b;--gray-900:#0f172a;
+      --shadow:0 2px 8px rgba(0,0,0,.10);--shadow-lg:0 6px 20px rgba(0,0,0,.13);
+      --r:16px;--r-sm:10px;
+    }
+    html,body{height:100%}
+    body{
+      font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;
+      background:#eef2ff;color:var(--gray-900);font-size:20px;line-height:1.5;
+      -webkit-font-smoothing:antialiased;
+    }
+    .screen{display:none;min-height:100vh;padding-bottom:calc(32px + env(safe-area-inset-bottom))}
+    .screen.active{display:block}
+
+    /* ── Header ── */
+    .hdr{
+      background:var(--blue);color:#fff;
+      padding:calc(14px + env(safe-area-inset-top)) 18px 14px;
+      display:flex;align-items:center;gap:12px;
+      position:sticky;top:0;z-index:100;
+      box-shadow:0 2px 10px rgba(26,86,219,.35);
+    }
+    .hdr-title{font-size:1.2rem;font-weight:700;flex:1}
+    .btn-back{
+      background:rgba(255,255,255,.22);border:none;color:#fff;
+      width:46px;height:46px;border-radius:50%;font-size:1.5rem;
+      cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0
+    }
+
+    .wrap{padding:18px 16px;max-width:480px;margin:0 auto}
+
+    /* ── Month banner ── */
+    .month-banner{
+      background:#fff;border-radius:var(--r);padding:14px 20px;
+      margin-bottom:18px;text-align:center;box-shadow:var(--shadow)
+    }
+    .month-banner-lbl{font-size:.85rem;color:var(--gray-500);margin-bottom:3px}
+    .month-banner-val{font-size:1.4rem;font-weight:700;color:var(--blue)}
+
+    /* ── Month selector ── */
+    .month-sel{
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      background:#fff;border-radius:var(--r);padding:14px 16px;
+      margin-bottom:16px;box-shadow:var(--shadow)
+    }
+    .month-sel-label{font-size:1.1rem;font-weight:700;color:var(--blue);flex:1;text-align:center}
+    .btn-month{
+      background:var(--blue-light);border:none;color:var(--blue);
+      width:44px;height:44px;border-radius:50%;font-size:1.4rem;
+      cursor:pointer;display:flex;align-items:center;justify-content:center
+    }
+    .btn-month:disabled{opacity:.3;cursor:default}
+
+    /* ── Shop card ── */
+    .shop-card{
+      background:#fff;border-radius:var(--r);padding:20px;
+      margin-bottom:16px;box-shadow:var(--shadow);position:relative;overflow:hidden
+    }
+    .shop-card::before{content:'';position:absolute;top:0;left:0;right:0;height:5px;background:var(--card-color,var(--blue))}
+    .shop-card-hdr{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+    .shop-emoji{font-size:3rem;line-height:1;flex-shrink:0}
+    .shop-name{font-size:1.25rem;font-weight:700}
+    .shop-rent-tag{font-size:.9rem;color:var(--gray-500);margin-top:2px}
+    .shop-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+    /* ── Buttons ── */
+    .btn{
+      border:none;border-radius:var(--r-sm);padding:15px 14px;
+      font-size:1rem;font-weight:600;cursor:pointer;
+      display:flex;align-items:center;justify-content:center;gap:6px;
+      transition:opacity .15s;font-family:inherit;line-height:1.2
+    }
+    .btn:active{opacity:.72}
+    .btn-primary{background:var(--blue);color:#fff}
+    .btn-secondary{background:var(--gray-100);color:var(--gray-700)}
+    .btn-success{background:var(--green);color:#fff}
+    .btn-danger{background:var(--red);color:#fff}
+    .btn-outline{background:transparent;color:var(--blue);border:2px solid var(--blue)}
+    .btn-sm{padding:9px 14px;font-size:.9rem}
+    .btn-lg{padding:18px 16px;font-size:1.1rem}
+    .btn-full{width:100%}
+
+    /* ── Section card ── */
+    .sec{background:#fff;border-radius:var(--r);margin-bottom:14px;overflow:hidden;box-shadow:var(--shadow)}
+    .sec-hdr{background:var(--blue-light);padding:13px 18px;display:flex;align-items:center;justify-content:space-between}
+    .sec-title{font-size:1rem;font-weight:700;color:var(--blue-dark)}
+    .sec-rate{font-size:.82rem;color:var(--gray-500)}
+    .sec-body{padding:16px 18px}
+
+    /* ── Meter inputs ── */
+    .m-row{margin-bottom:14px}
+    .m-lbl{font-size:.88rem;color:var(--gray-500);font-weight:600;margin-bottom:6px}
+    .m-lbl-row{font-size:.88rem;color:var(--gray-500);font-weight:600;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between}
+    .btn-unlock{background:none;border:none;color:var(--blue);font-size:.85rem;font-weight:700;cursor:pointer;padding:3px 8px;border-radius:6px;font-family:inherit}
+    .m-input{
+      width:100%;border:2px solid var(--gray-200);border-radius:var(--r-sm);
+      padding:14px 16px;font-size:1.25rem;font-family:inherit;
+      color:var(--gray-900);background:#fff;-webkit-appearance:none;transition:border-color .2s
+    }
+    .m-input:focus{outline:none;border-color:var(--blue)}
+    .m-input.locked{background:var(--gray-100);color:var(--gray-500);cursor:default}
+    .m-calc{
+      background:var(--gray-50);border-radius:var(--r-sm);padding:11px 14px;
+      margin-top:8px;display:flex;justify-content:space-between;align-items:center;gap:8px
+    }
+    .m-calc-lbl{font-size:.88rem;color:var(--gray-500);flex-shrink:0}
+    .m-calc-val{font-size:1.05rem;font-weight:700;color:var(--green);text-align:right}
+    .m-calc-val.err{color:var(--red)}
+    .halve-note{font-size:.78rem;color:var(--amber);font-weight:600;margin-top:4px;text-align:right}
+
+    /* ── Rent row ── */
+    .rent-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .rent-amt{font-size:1.7rem;font-weight:800;color:var(--blue)}
+    .rent-unit{font-size:1rem;font-weight:400}
+
+    /* ── Total box ── */
+    .total-box{
+      background:var(--blue);color:#fff;border-radius:var(--r);
+      padding:22px 20px;margin-bottom:14px;text-align:center;box-shadow:var(--shadow-lg)
+    }
+    .total-lbl{font-size:1rem;opacity:.85;margin-bottom:6px}
+    .total-amt{font-size:2.6rem;font-weight:800;letter-spacing:-.5px}
+    .total-unit{font-size:.95rem;opacity:.8}
+
+    /* ── History list ── */
+    .hist-item{
+      background:#fff;border-radius:var(--r);padding:16px 18px;
+      margin-bottom:12px;box-shadow:var(--shadow);
+      display:flex;align-items:center;gap:14px;cursor:pointer;transition:opacity .15s
+    }
+    .hist-item:active{opacity:.72}
+    .hist-mon{background:var(--blue-light);color:var(--blue);width:54px;height:54px;border-radius:var(--r-sm);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0}
+    .hist-mon-num{font-size:1.4rem;font-weight:800;line-height:1}
+    .hist-mon-yr{font-size:.68rem;font-weight:600;margin-top:1px}
+    .hist-info{flex:1}
+    .hist-title{font-size:1rem;font-weight:600}
+    .hist-sub{font-size:.82rem;color:var(--gray-500);margin-top:2px}
+    .hist-total{font-size:1.1rem;font-weight:700;color:var(--green);white-space:nowrap}
+    .hist-arrow{color:var(--gray-200);font-size:1.5rem;margin-left:4px}
+
+    /* ── Detail ── */
+    .det-item{display:flex;justify-content:space-between;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--gray-100);gap:10px}
+    .det-item:last-child{border-bottom:none}
+    .det-lbl{color:var(--gray-700);font-size:.95rem}
+    .det-sub{font-size:.78rem;color:var(--gray-400);margin-top:2px}
+    .det-val{font-weight:700;font-size:.95rem;text-align:right;flex-shrink:0}
+    .det-total-row{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-top:2.5px solid var(--blue-light);margin-top:6px}
+    .det-total-lbl{font-size:1.05rem;font-weight:700}
+    .det-total-val{font-size:1.4rem;font-weight:800;color:var(--green)}
+
+    /* ── Empty state ── */
+    .empty{text-align:center;padding:64px 20px;color:var(--gray-500)}
+    .empty-icon{font-size:4rem;margin-bottom:14px}
+    .empty-txt{font-size:1.05rem}
+
+    /* ── Chip ── */
+    .chip{border-radius:8px;padding:9px 14px;font-size:.85rem;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+    .chip-warn{background:var(--amber-light);color:var(--amber)}
+
+    /* ── Modal ── */
+    .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:flex-end;justify-content:center}
+    .modal-bg.on{display:flex}
+    .modal-sheet{background:#fff;border-radius:24px 24px 0 0;padding:26px 22px calc(26px + env(safe-area-inset-bottom));width:100%;max-width:480px}
+    .modal-title{font-size:1.2rem;font-weight:700;margin-bottom:18px;text-align:center}
+    .modal-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
+
+    /* ── Sync button ── */
+    .btn-sync{background:rgba(255,255,255,.22);border:none;color:#fff;width:44px;height:44px;border-radius:50%;font-size:1.25rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:opacity .2s}
+    .btn-sync:active{opacity:.7}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .spinning{display:inline-block;animation:spin .8s linear infinite}
+
+    /* ── Toast ── */
+    .toast{
+      position:fixed;bottom:calc(28px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);
+      background:var(--green);color:#fff;padding:14px 22px;border-radius:14px;font-size:1rem;font-weight:600;
+      z-index:300;box-shadow:var(--shadow-lg);max-width:90%;text-align:center;white-space:pre-line;pointer-events:none
+    }
+
+    /* ── Invoice Preview ── */
+    .invoice{background:#fff;border-radius:20px;box-shadow:0 6px 28px rgba(0,0,0,.13);overflow:hidden;margin-bottom:18px}
+    .inv-head{
+      background:linear-gradient(135deg,#1a56db 0%,#4f46e5 100%);
+      color:#fff;padding:26px 22px 22px;text-align:center
+    }
+    .inv-head-sub{font-size:.78rem;opacity:.75;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px}
+    .inv-head-shop{font-size:1.6rem;font-weight:800;margin-bottom:5px}
+    .inv-head-month{font-size:1rem;opacity:.9}
+    .draft-badge{background:rgba(255,255,255,.25);border-radius:5px;padding:2px 8px;font-size:.72rem;font-style:normal;vertical-align:middle;margin-left:6px}
+    .inv-body{padding:6px 20px 4px}
+    .inv-row{display:flex;justify-content:space-between;align-items:flex-start;padding:13px 0;border-bottom:1px solid var(--gray-100);gap:14px}
+    .inv-row:last-child{border-bottom:none}
+    .inv-lbl{font-size:1rem;font-weight:600;color:var(--gray-800)}
+    .inv-sub{font-size:.8rem;color:var(--gray-500);margin-top:4px;line-height:1.5}
+    .inv-val{font-size:1.05rem;font-weight:700;color:var(--gray-900);text-align:right;flex-shrink:0;margin-top:1px}
+    .halve-tag{background:var(--amber-light);color:var(--amber);border-radius:4px;padding:1px 6px;font-size:.72rem;font-weight:700;font-style:normal;vertical-align:middle}
+    .inv-footer{background:var(--gray-50);border-top:2px solid var(--blue-light);padding:18px 22px;display:flex;justify-content:space-between;align-items:center}
+    .inv-total-lbl{font-size:1.05rem;font-weight:700}
+    .inv-total-val{font-size:1.9rem;font-weight:800;color:var(--blue);text-align:right;line-height:1.1}
+    .inv-total-unit{font-size:.8rem;color:var(--gray-500);text-align:right;margin-top:2px}
+    .inv-divider{height:1px;background:var(--gray-200);margin:2px 0}
+  </style>
+</head>
+<body>
+
+<!-- ══ HOME ══ -->
+<div id="screen-home" class="screen active">
+  <div class="hdr">
+    <div class="hdr-title">🏠 คำนวณค่าเช่า</div>
+    <button class="btn-sync" id="sync-btn" onclick="syncFromSheet(true)" title="ซิงค์จาก Google Sheet">☁️</button>
+  </div>
+  <div class="wrap">
+    <div class="month-banner">
+      <div class="month-banner-lbl">เดือนปัจจุบัน</div>
+      <div class="month-banner-val" id="home-month"></div>
+    </div>
+    <div id="shop-list"></div>
+  </div>
+</div>
+
+<!-- ══ BILLING ══ -->
+<div id="screen-billing" class="screen">
+  <div class="hdr">
+    <button class="btn-back" onclick="go('home')">←</button>
+    <div class="hdr-title" id="billing-title">คำนวณค่าใช้จ่าย</div>
+  </div>
+  <div class="wrap" id="billing-wrap"></div>
+</div>
+
+<!-- ══ PREVIEW ══ -->
+<div id="screen-preview" class="screen">
+  <div class="hdr">
+    <button class="btn-back" id="preview-back">←</button>
+    <div class="hdr-title">📄 ใบแจ้งค่าใช้จ่าย</div>
+  </div>
+  <div class="wrap" id="preview-wrap"></div>
+</div>
+
+<!-- ══ HISTORY ══ -->
+<div id="screen-history" class="screen">
+  <div class="hdr">
+    <button class="btn-back" onclick="go('home')">←</button>
+    <div class="hdr-title" id="history-title">ประวัติ</div>
+  </div>
+  <div class="wrap" id="history-wrap"></div>
+</div>
+
+<!-- ══ HISTORY DETAIL ══ -->
+<div id="screen-history-detail" class="screen">
+  <div class="hdr">
+    <button class="btn-back" id="detail-back">←</button>
+    <div class="hdr-title" id="detail-title">รายละเอียด</div>
+  </div>
+  <div class="wrap" id="detail-wrap"></div>
+</div>
+
+<!-- MODAL: EDIT RENT -->
+<div id="modal-rent" class="modal-bg">
+  <div class="modal-sheet">
+    <div class="modal-title">✏️ แก้ไขค่าเช่า</div>
+    <div class="m-lbl">จำนวนเงิน (บาท)</div>
+    <input type="number" step="any" id="rent-input" class="m-input" inputmode="decimal" placeholder="เช่น 5000">
+    <div class="modal-row">
+      <button class="btn btn-secondary" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="saveRent()">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: CONFIRM SAVE -->
+<div id="modal-confirm" class="modal-bg">
+  <div class="modal-sheet">
+    <div class="modal-title">💾 ยืนยันบันทึก</div>
+    <p style="text-align:center;color:var(--gray-500);margin-bottom:6px">บันทึกค่าใช้จ่ายสำหรับ</p>
+    <p style="text-align:center;font-weight:700;font-size:1.1rem" id="confirm-text"></p>
+    <div class="modal-row">
+      <button class="btn btn-secondary" onclick="closeModal()">กลับแก้ไข</button>
+      <button class="btn btn-success" onclick="doSave()">บันทึก ✓</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── DEFAULT DATA ───────────────────────────
+const SHOP_DEFS=[
+  {id:'shop1',name:'ร้านขนมปังปิ้ง',emoji:'🍞',color:'#f59e0b',rent:5000,
+   items:[
+    {id:'ce',label:'ค่าไฟทางเดิน',icon:'💡',rate:8},
+    {id:'se',label:'ค่าไฟร้าน',icon:'🔌',rate:8},
+    {id:'bw',label:'ค่าน้ำห้องน้ำ',icon:'🚿',rate:28,halve:true},
+    {id:'sw',label:'ค่าน้ำที่ร้าน',icon:'💧',rate:28},
+   ]},
+  {id:'shop2',name:'ร้านมือถือ',emoji:'📱',color:'#3b82f6',noRent:true,
+   items:[
+    {id:'se',label:'ค่าไฟร้าน',icon:'🔌',rate:8},
+    {id:'bw',label:'ค่าน้ำห้องน้ำ',icon:'🚿',rate:28,halve:true},
+   ]},
+  {id:'shop3',name:'ร้านซักผ้า',emoji:'👕',color:'#10b981',rent:15000,
+   items:[
+    {id:'se',label:'ค่าไฟร้าน',icon:'🔌',rate:8},
+    {id:'sw',label:'ค่าน้ำ',icon:'💧',rate:28},
+   ]},
+];
+
+// ─── STATE ───────────────────────────────────
+let shops=[],history={};
+let curShopId=null,editRentShopId=null;
+let bd={};
+let previewRec=null,previewBack='billing';
+
+// ─── STORAGE ─────────────────────────────────
+function load(){
+  try{
+    const raw=localStorage.getItem('rc_v3');
+    if(raw){const d=JSON.parse(raw);shops=d.shops;history=d.history||{};}
+    else{shops=JSON.parse(JSON.stringify(SHOP_DEFS));history={};}
+  }catch(e){shops=JSON.parse(JSON.stringify(SHOP_DEFS));history={};}
+}
+function save(){localStorage.setItem('rc_v3',JSON.stringify({shops,history}))}
+
+// ─── GOOGLE SHEET SYNC ───────────────────────
+const SHEET_URL='https://script.google.com/macros/s/AKfycbzsvuCwASsMiFjpEuOUfsqdNQJVNqhHNFZIcNZ1miv9acp_8CtFFLo1WsQHQXxpC2QZ/exec';
+
+function setSyncIcon(state){
+  const btn=document.getElementById('sync-btn');
+  if(!btn)return;
+  if(state==='syncing'){btn.innerHTML='<span class="spinning">🔄</span>';}
+  else if(state==='ok'){btn.textContent='✅';setTimeout(()=>setSyncIcon('idle'),2500);}
+  else if(state==='err'){btn.textContent='⚠️';setTimeout(()=>setSyncIcon('idle'),4000);}
+  else{btn.textContent='☁️';}
+}
+
+async function pushToSheet(action,record,shopName){
+  setSyncIcon('syncing');
+  try{
+    await fetch(SHEET_URL,{
+      method:'POST',
+      headers:{'Content-Type':'text/plain'},
+      body:JSON.stringify({action,record,shopName})
+    });
+    setSyncIcon('ok');
+  }catch(e){
+    setSyncIcon('err');
+    toast('⚠️ บันทึก Google Sheet ไม่สำเร็จ\nข้อมูลยังอยู่ในเครื่องปกติ',4000);
+  }
+}
+
+async function syncFromSheet(manual=false){
+  setSyncIcon('syncing');
+  if(manual)toast('🔄 กำลังโหลดจาก Google Sheet...',2000);
+  try{
+    const res=await fetch(SHEET_URL+'?t='+Date.now());
+    const data=await res.json();
+    if(data.ok&&data.records){
+      const newHist={};
+      data.records.forEach(rec=>{
+        if(!newHist[rec.shopId])newHist[rec.shopId]=[];
+        newHist[rec.shopId].push(rec);
+      });
+      history=newHist;
+      save();renderHome();
+      setSyncIcon('ok');
+      if(manual)toast(`✅ โหลดข้อมูลจาก Google Sheet แล้ว\nพบ ${data.records.length} รายการ`);
+    }
+  }catch(e){
+    setSyncIcon('err');
+    if(manual)toast('⚠️ เชื่อมต่อ Google Sheet ไม่ได้\nใช้ข้อมูลในเครื่องแทน',4000);
+  }
+}
+
+// ─── UTILS ───────────────────────────────────
+const TMON_S=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const TMON_F=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+function mkey(y,m){return`${y}-${String(m).padStart(2,'0')}`}
+function nowKey(){const d=new Date();return mkey(d.getFullYear(),d.getMonth()+1)}
+function parseKey(k){const[y,m]=k.split('-').map(Number);return{y,m}}
+function keyLabel(k,full=true){const{y,m}=parseKey(k);return`${full?TMON_F[m-1]:TMON_S[m-1]} ${y+543}`}
+function prevKey(k){let{y,m}=parseKey(k);m--;if(m===0){m=12;y--;}return mkey(y,m)}
+function nextKey(k){let{y,m}=parseKey(k);m++;if(m===13){m=1;y++;}return mkey(y,m)}
+function fmt(n,dec=2){if(n===null||n===undefined||isNaN(n))return'—';return Number(n).toLocaleString('th-TH',{minimumFractionDigits:dec,maximumFractionDigits:dec})}
+function fmtN(n){if(n===null||n===undefined||isNaN(n))return'—';return Number(n).toLocaleString('th-TH',{maximumFractionDigits:2})}
+function shop(id){return shops.find(s=>s.id===id)}
+function calcCost(it,units){return it.halve?units*it.rate/2:units*it.rate}
+function lastReadingsBefore(shopId,monthKey){
+  const h=(history[shopId]||[]).filter(r=>r.monthKey<monthKey).sort((a,b)=>b.monthKey.localeCompare(a.monthKey));
+  return h.length?h[0].currReadings:null;
+}
+
+// ─── NAV ─────────────────────────────────────
+function go(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+// ─── TOAST ───────────────────────────────────
+function toast(msg,ms=2800){
+  const t=document.createElement('div');t.className='toast';t.textContent=msg;
+  document.body.appendChild(t);setTimeout(()=>t.remove(),ms);
+}
+
+// ─── HOME ────────────────────────────────────
+function renderHome(){
+  const now=new Date();
+  document.getElementById('home-month').textContent=`${TMON_F[now.getMonth()]} ${now.getFullYear()+543}`;
+  document.getElementById('shop-list').innerHTML=shops.map(s=>{
+    const cnt=(history[s.id]||[]).length;
+    return`<div class="shop-card" style="--card-color:${s.color}">
+      <div class="shop-card-hdr">
+        <div class="shop-emoji">${s.emoji}</div>
+        <div><div class="shop-name">${s.name}</div>
+        <div class="shop-rent-tag">${s.noRent?'ไม่มีค่าเช่า':'ค่าเช่า '+fmt(s.rent)+' บาท/เดือน'}</div></div>
+      </div>
+      <div class="shop-btns">
+        <button class="btn btn-primary" onclick="openBilling('${s.id}')">🧮 คำนวณค่าใช้จ่าย</button>
+        <button class="btn btn-secondary" onclick="openHistory('${s.id}')">📋 ประวัติ${cnt?` (${cnt})`:''}</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── BILLING ─────────────────────────────────
+function openBilling(shopId){
+  curShopId=shopId;
+  const s=shop(shopId);
+  document.getElementById('billing-title').textContent=s.name;
+  bd={shopId,monthKey:nowKey(),rent:s.rent,items:{}};
+  const lr=lastReadingsBefore(shopId,bd.monthKey);
+  s.items.forEach(it=>{
+    const prevVal=lr&&lr[it.id]!=null?lr[it.id]:'';
+    bd.items[it.id]={prev:prevVal,curr:'',locked:prevVal!==''};
+  });
+  renderBilling();
+  go('billing');
+}
+
+function renderBilling(){
+  const s=shop(curShopId);
+  const mk=bd.monthKey;
+  const isNow=mk===nowKey();
+  const existing=(history[curShopId]||[]).some(r=>r.monthKey===mk);
+
+  let h=`<div class="month-sel">
+    <button class="btn-month" onclick="shiftMonth(-1)">◀</button>
+    <div class="month-sel-label">${keyLabel(mk)}</div>
+    <button class="btn-month" ${isNow?'disabled':''} onclick="shiftMonth(1)">▶</button>
+  </div>`;
+
+  if(existing)h+=`<div class="chip chip-warn">⚠️ มีข้อมูลเดือนนี้แล้ว บันทึกใหม่จะแทนที่</div>`;
+
+  // Rent (hidden for noRent shops)
+  if(!s.noRent){
+    h+=`<div class="sec">
+      <div class="sec-hdr"><span class="sec-title">🏠 ค่าเช่า</span><span class="sec-rate">คงที่ทุกเดือน</span></div>
+      <div class="sec-body">
+        <div class="rent-row">
+          <div class="rent-amt">${fmt(s.rent)} <span class="rent-unit">บาท</span></div>
+          <button class="btn btn-outline btn-sm" onclick="openEditRent('${s.id}')">✏️ แก้ไข</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // Meter items
+  s.items.forEach(it=>{
+    const d=bd.items[it.id];
+    const rateLabel=it.halve?`${it.rate} บาท/หน่วย ÷ 2`:`${it.rate} บาท/หน่วย`;
+    const prevField=d.locked
+      ?`<div class="m-lbl-row">
+          <span>เลขมิเตอร์เดือนที่แล้ว 🔒</span>
+          <button class="btn-unlock" onclick="unlockPrev('${it.id}')">🔓 แก้ไข</button>
+        </div>
+        <input type="number" step="any" inputmode="decimal" class="m-input locked"
+          id="prev-${it.id}" value="${d.prev}" readonly tabindex="-1">`
+      :`<div class="m-lbl">เลขมิเตอร์เดือนที่แล้ว</div>
+        <input type="number" step="any" inputmode="decimal" class="m-input"
+          id="prev-${it.id}" value="${d.prev}" placeholder="กรอกเลขมิเตอร์เดือนที่แล้ว"
+          oninput="onInput('${it.id}')">`;
+    h+=`<div class="sec">
+      <div class="sec-hdr">
+        <span class="sec-title">${it.icon} ${it.label}${it.halve?' <em style="font-weight:400;font-style:normal;font-size:.8rem">(หาร 2)</em>':''}</span>
+        <span class="sec-rate">${rateLabel}</span>
+      </div>
+      <div class="sec-body">
+        <div class="m-row">${prevField}</div>
+        <div class="m-row">
+          <div class="m-lbl">เลขมิเตอร์ปัจจุบัน</div>
+          <input type="number" step="any" inputmode="decimal" class="m-input"
+            id="curr-${it.id}" value="${d.curr}" placeholder="กรอกเลขมิเตอร์ปัจจุบัน"
+            oninput="onInput('${it.id}')">
+        </div>
+        <div class="m-calc">
+          <span class="m-calc-lbl">จำนวนที่ใช้</span>
+          <span class="m-calc-val" id="u-${it.id}">— หน่วย</span>
+        </div>
+        <div class="m-calc" style="margin-top:8px">
+          <span class="m-calc-lbl">ค่าใช้จ่าย</span>
+          <span class="m-calc-val" id="c-${it.id}">— บาท</span>
+        </div>
+      </div>
+    </div>`;
+  });
+
+  h+=`<div class="total-box">
+    <div class="total-lbl">รวมค่าใช้จ่ายทั้งหมด</div>
+    <div class="total-amt" id="total-amt">${fmt(s.noRent?0:s.rent)}</div>
+    <div class="total-unit">บาท</div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <button class="btn btn-outline btn-lg" onclick="openPreviewDraft()">👁️ ดูตัวอย่าง</button>
+    <button class="btn btn-success btn-lg" onclick="askSave()">💾 บันทึก</button>
+  </div>`;
+
+  document.getElementById('billing-wrap').innerHTML=h;
+  recalcAll();
+}
+
+function shiftMonth(dir){
+  const newKey=dir<0?prevKey(bd.monthKey):nextKey(bd.monthKey);
+  bd.monthKey=newKey;
+  const s=shop(curShopId);
+  const lr=lastReadingsBefore(curShopId,newKey);
+  s.items.forEach(it=>{
+    const prevVal=lr&&lr[it.id]!=null?lr[it.id]:'';
+    bd.items[it.id]={prev:prevVal,curr:'',locked:prevVal!==''};
+  });
+  renderBilling();
+}
+
+function unlockPrev(itemId){
+  // save all live input values before re-render so nothing is lost
+  const s=shop(curShopId);
+  s.items.forEach(it=>{
+    const c=document.getElementById('curr-'+it.id);
+    if(c)bd.items[it.id].curr=c.value;
+    if(!bd.items[it.id].locked){const p=document.getElementById('prev-'+it.id);if(p)bd.items[it.id].prev=p.value;}
+  });
+  bd.items[itemId].locked=false;
+  renderBilling();
+  setTimeout(()=>{const el=document.getElementById('prev-'+itemId);if(el)el.focus();},100);
+}
+
+function onInput(itemId){
+  const prevEl=document.getElementById('prev-'+itemId);
+  const currEl=document.getElementById('curr-'+itemId);
+  if(prevEl&&!bd.items[itemId].locked)bd.items[itemId].prev=prevEl.value;
+  if(currEl)bd.items[itemId].curr=currEl.value;
+  recalcItem(itemId);
+  recalcTotal();
+}
+
+function recalcItem(itemId){
+  const s=shop(curShopId);
+  const it=s.items.find(i=>i.id===itemId);
+  const uEl=document.getElementById('u-'+itemId);
+  const cEl=document.getElementById('c-'+itemId);
+  if(!uEl||!cEl)return;
+  const prev=parseFloat(bd.items[itemId].prev);
+  const curr=parseFloat(bd.items[itemId].curr);
+  if(isNaN(prev)||isNaN(curr)){
+    uEl.textContent='— หน่วย';uEl.className='m-calc-val';
+    cEl.textContent='— บาท';cEl.className='m-calc-val';
+    return;
+  }
+  const units=curr-prev;
+  if(units<0){
+    uEl.textContent='⚠️ ค่าปัจจุบันน้อยกว่าเดือนที่แล้ว';uEl.className='m-calc-val err';
+    cEl.textContent='— บาท';cEl.className='m-calc-val err';
+  }else{
+    const cost=calcCost(it,units);
+    uEl.textContent=`${fmtN(units)} หน่วย`;uEl.className='m-calc-val';
+    if(it.halve){
+      cEl.innerHTML=`${fmt(cost)} บาท<div class="halve-note">${fmtN(units)} × ${it.rate} ÷ 2</div>`;
+    }else{
+      cEl.textContent=`${fmt(cost)} บาท`;
+    }
+    cEl.className='m-calc-val';
+  }
+}
+
+function recalcAll(){const s=shop(curShopId);s.items.forEach(it=>recalcItem(it.id));recalcTotal()}
+
+function recalcTotal(){
+  const s=shop(curShopId);
+  let total=s.noRent?0:s.rent;let hasErr=false;
+  s.items.forEach(it=>{
+    const prev=parseFloat(bd.items[it.id].prev);
+    const curr=parseFloat(bd.items[it.id].curr);
+    if(!isNaN(prev)&&!isNaN(curr)){const u=curr-prev;if(u<0)hasErr=true;else total+=calcCost(it,u);}
+  });
+  const el=document.getElementById('total-amt');
+  if(el)el.textContent=hasErr?'กรุณาตรวจสอบข้อมูล':fmt(total);
+}
+
+function askSave(){
+  const s=shop(curShopId);
+  document.getElementById('confirm-text').textContent=`${s.emoji} ${s.name} — ${keyLabel(bd.monthKey)}`;
+  document.getElementById('modal-confirm').classList.add('on');
+}
+
+function doSave(){
+  closeModal();
+  const s=shop(curShopId);
+  const currReadings={};
+  const items=s.items.map(it=>{
+    const prev=parseFloat(bd.items[it.id].prev);
+    const curr=parseFloat(bd.items[it.id].curr);
+    const units=(!isNaN(prev)&&!isNaN(curr))?Math.max(0,curr-prev):0;
+    const cost=calcCost(it,units);
+    currReadings[it.id]=!isNaN(curr)?curr:null;
+    return{id:it.id,label:it.label,icon:it.icon,rate:it.rate,halve:it.halve||false,
+      prev:isNaN(prev)?null:prev,curr:isNaN(curr)?null:curr,units,cost};
+  });
+  const rentVal=s.noRent?0:s.rent;
+  const total=rentVal+items.reduce((s,i)=>s+i.cost,0);
+  const rec={monthKey:bd.monthKey,savedAt:new Date().toISOString(),
+    shopId:curShopId,rent:rentVal,noRent:s.noRent||false,items,currReadings,total};
+  if(!history[curShopId])history[curShopId]=[];
+  history[curShopId]=history[curShopId].filter(r=>r.monthKey!==bd.monthKey);
+  history[curShopId].push(rec);
+  save();
+  toast(`✅ บันทึกเรียบร้อย!\nรวม ${fmt(total)} บาท`);
+  renderHome();go('home');
+  pushToSheet('save',rec,s.name);
+}
+
+// ─── EDIT RENT ────────────────────────────────
+function openEditRent(shopId){
+  editRentShopId=shopId;
+  document.getElementById('rent-input').value=shop(shopId).rent;
+  document.getElementById('modal-rent').classList.add('on');
+}
+function saveRent(){
+  const v=parseFloat(document.getElementById('rent-input').value);
+  if(isNaN(v)||v<0){toast('⚠️ กรุณากรอกจำนวนที่ถูกต้อง');return;}
+  shop(editRentShopId).rent=v;bd.rent=v;save();closeModal();renderBilling();toast('✅ บันทึกค่าเช่าแล้ว');
+}
+
+// ─── PREVIEW ─────────────────────────────────
+function buildPreviewData(){
+  const s=shop(curShopId);
+  const items=s.items.map(it=>{
+    const prev=parseFloat(bd.items[it.id].prev);
+    const curr=parseFloat(bd.items[it.id].curr);
+    const units=(!isNaN(prev)&&!isNaN(curr))?Math.max(0,curr-prev):null;
+    const cost=units!==null?calcCost(it,units):null;
+    return{id:it.id,label:it.label,icon:it.icon,rate:it.rate,halve:it.halve||false,
+      prev:isNaN(prev)?null:prev,curr:isNaN(curr)?null:curr,units,cost};
+  });
+  const rentVal=s.noRent?0:s.rent;
+  const total=rentVal+items.reduce((s,i)=>s+(i.cost||0),0);
+  return{shopId:curShopId,monthKey:bd.monthKey,rent:rentVal,noRent:s.noRent||false,items,total,isDraft:true};
+}
+
+function openPreviewDraft(){openPreview(buildPreviewData(),'billing')}
+
+function openPreview(rec,backScreen){
+  previewRec=rec;previewBack=backScreen;
+  document.getElementById('preview-back').onclick=()=>go(backScreen);
+  renderPreview();go('preview');
+}
+
+function renderPreview(){
+  const rec=previewRec;
+  const s=shop(rec.shopId);
+
+  let h=`<div class="invoice">`;
+
+  // Header
+  h+=`<div class="inv-head">
+    <div class="inv-head-sub">ใบแจ้งค่าใช้จ่าย${rec.isDraft?'<em class="draft-badge">ร่าง</em>':''}</div>
+    <div class="inv-head-shop">${s.emoji} ${s.name}</div>
+    <div class="inv-head-month">${keyLabel(rec.monthKey)}</div>
+  </div>`;
+
+  h+=`<div class="inv-body">`;
+
+  // Rent (hidden for noRent shops)
+  if(!rec.noRent){
+    h+=`<div class="inv-row">
+      <div><div class="inv-lbl">🏠 ค่าเช่า</div></div>
+      <div class="inv-val">${fmt(rec.rent)} บาท</div>
+    </div>
+    <div class="inv-divider"></div>`;
+  }
+
+  // Items
+  rec.items.forEach(it=>{
+    const ok=it.units!==null&&it.cost!==null;
+    const calcStr=ok?(it.halve
+      ?`${fmtN(it.prev)} → ${fmtN(it.curr)} = ${fmtN(it.units)} หน่วย × ${it.rate} ÷ 2`
+      :`${fmtN(it.prev)} → ${fmtN(it.curr)} = ${fmtN(it.units)} หน่วย × ${it.rate}`
+    ):'ไม่ได้กรอกข้อมูล';
+    h+=`<div class="inv-row">
+      <div>
+        <div class="inv-lbl">${it.icon} ${it.label}${it.halve?' <em class="halve-tag">÷2</em>':''}</div>
+        <div class="inv-sub${ok?'':'" style="color:var(--red)'}">${calcStr}</div>
+      </div>
+      <div class="inv-val">${ok?fmt(it.cost)+' บาท':'—'}</div>
+    </div>`;
+  });
+
+  h+=`</div>`;
+
+  // Footer total
+  h+=`<div class="inv-footer">
+    <div class="inv-total-lbl">💰 รวมทั้งหมด</div>
+    <div>
+      <div class="inv-total-val">${fmt(rec.total)}</div>
+      <div class="inv-total-unit">บาท</div>
+    </div>
+  </div></div>`;
+
+  // Action buttons
+  if(rec.isDraft){
+    h+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <button class="btn btn-outline btn-lg" onclick="copyBillText()">📋 คัดลอกข้อความ</button>
+      <button class="btn btn-success btn-lg" onclick="doSave()">💾 บันทึก</button>
+    </div>`;
+  }else{
+    h+=`<button class="btn btn-outline btn-full btn-lg" onclick="copyBillText()">📋 คัดลอกข้อความ</button>`;
+  }
+
+  document.getElementById('preview-wrap').innerHTML=h;
+}
+
+function copyBillText(){
+  const rec=previewRec;
+  const s=shop(rec.shopId);
+  let t=`📋 ใบแจ้งค่าใช้จ่าย\n`;
+  t+=`${s.emoji} ${s.name}\n`;
+  t+=`เดือน ${keyLabel(rec.monthKey)}\n`;
+  t+=`${'─'.repeat(26)}\n`;
+  t+=`🏠 ค่าเช่า: ${fmt(rec.rent)} บาท\n`;
+  rec.items.forEach(it=>{
+    if(it.units!==null&&it.cost!==null){
+      const calc=it.halve
+        ?`${fmtN(it.units)} หน่วย × ${it.rate} ÷ 2 = ${fmt(it.cost)} บาท`
+        :`${fmtN(it.units)} หน่วย × ${it.rate} = ${fmt(it.cost)} บาท`;
+      t+=`${it.icon} ${it.label}: ${calc}\n`;
+    }else{
+      t+=`${it.icon} ${it.label}: ไม่ได้บันทึก\n`;
+    }
+  });
+  t+=`${'─'.repeat(26)}\n`;
+  t+=`💰 รวมทั้งหมด: ${fmt(rec.total)} บาท`;
+
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(()=>toast('📋 คัดลอกแล้ว!\nนำไปวางใน LINE หรือ SMS ได้เลย')).catch(()=>fallbackCopy(t));
+  }else{fallbackCopy(t);}
+}
+
+function fallbackCopy(text){
+  const el=document.createElement('textarea');
+  el.value=text;el.style.cssText='position:fixed;opacity:0;top:0;left:0';
+  document.body.appendChild(el);
+  el.focus();el.setSelectionRange(0,99999);
+  try{document.execCommand('copy');toast('📋 คัดลอกแล้ว!');}
+  catch(e){toast('⚠️ ไม่สามารถคัดลอกได้ กรุณาลองใหม่');}
+  document.body.removeChild(el);
+}
+
+// ─── HISTORY ─────────────────────────────────
+function openHistory(shopId){
+  curShopId=shopId;
+  const s=shop(shopId);
+  document.getElementById('history-title').textContent=`ประวัติ — ${s.name}`;
+  document.getElementById('detail-back').onclick=()=>go('history');
+  const hist=(history[shopId]||[]).sort((a,b)=>b.monthKey.localeCompare(a.monthKey));
+  let h='';
+  if(!hist.length){
+    h=`<div class="empty"><div class="empty-icon">📭</div><div class="empty-txt">ยังไม่มีประวัติการเรียกเก็บ</div></div>`;
+  }else{
+    h=hist.map(r=>{
+      const{y,m}=parseKey(r.monthKey);
+      return`<div class="hist-item" onclick="openDetail('${shopId}','${r.monthKey}')">
+        <div class="hist-mon">
+          <div class="hist-mon-num">${m}</div>
+          <div class="hist-mon-yr">${y+543}</div>
+        </div>
+        <div class="hist-info">
+          <div class="hist-title">${keyLabel(r.monthKey)}</div>
+          <div class="hist-sub">บันทึก ${new Date(r.savedAt).toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric'})}</div>
+        </div>
+        <div class="hist-total">${fmt(r.total)}</div>
+        <div class="hist-arrow">›</div>
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('history-wrap').innerHTML=h;
+  go('history');
+}
+
+// ─── DETAIL ──────────────────────────────────
+function openDetail(shopId,monthKey){
+  const s=shop(shopId);
+  const rec=(history[shopId]||[]).find(r=>r.monthKey===monthKey);
+  if(!rec)return;
+  document.getElementById('detail-title').textContent=keyLabel(monthKey,false);
+
+  let h=`<div class="month-banner">
+    <div class="month-banner-lbl">${s.emoji} ${s.name}</div>
+    <div class="month-banner-val">${keyLabel(monthKey)}</div>
+  </div>`;
+
+  if(!rec.noRent){
+    h+=`<div class="sec">
+      <div class="sec-hdr"><span class="sec-title">🏠 ค่าเช่า</span></div>
+      <div class="sec-body">
+        <div class="det-item"><div class="det-lbl">ค่าเช่ารายเดือน</div><div class="det-val">${fmt(rec.rent)} บาท</div></div>
+      </div>
+    </div>`;
+  }
+
+  rec.items.forEach(it=>{
+    const isHalve=it.halve||it.id==='bw';
+    h+=`<div class="sec">
+      <div class="sec-hdr">
+        <span class="sec-title">${it.icon} ${it.label}${isHalve?' <em style="font-size:.8rem;font-weight:400;font-style:normal">(÷2)</em>':''}</span>
+        <span class="sec-rate">${it.rate} บาท/หน่วย${isHalve?' ÷ 2':''}</span>
+      </div>
+      <div class="sec-body">
+        <div class="det-item"><div class="det-lbl">มิเตอร์เดือนที่แล้ว</div><div class="det-val">${it.prev!==null?fmtN(it.prev):'—'}</div></div>
+        <div class="det-item"><div class="det-lbl">มิเตอร์ปัจจุบัน</div><div class="det-val">${it.curr!==null?fmtN(it.curr):'—'}</div></div>
+        <div class="det-item"><div class="det-lbl">จำนวนที่ใช้</div><div class="det-val">${fmtN(it.units)} หน่วย</div></div>
+        <div class="det-item">
+          <div class="det-lbl">ค่าใช้จ่าย${isHalve?'<div class="det-sub">คำนวณ ÷ 2 แล้ว</div>':''}</div>
+          <div class="det-val" style="color:var(--green)">${fmt(it.cost)} บาท</div>
+        </div>
+      </div>
+    </div>`;
+  });
+
+  h+=`<div class="sec"><div class="sec-body">
+    <div class="det-total-row"><div class="det-total-lbl">💰 รวมทั้งหมด</div><div class="det-total-val">${fmt(rec.total)} บาท</div></div>
+  </div></div>`;
+
+  h+=`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:4px">
+    <button class="btn btn-primary btn-lg" onclick="openPreview((history['${shopId}']||[]).find(r=>r.monthKey==='${monthKey}'),'history-detail')">📄 ดูใบแจ้ง</button>
+    <button class="btn btn-outline btn-lg" onclick="copyDetailText('${shopId}','${monthKey}')">📋 คัดลอก</button>
+    <button class="btn btn-danger btn-lg" onclick="delRecord('${shopId}','${monthKey}')">🗑️ ลบ</button>
+  </div>`;
+
+  document.getElementById('detail-wrap').innerHTML=h;
+  go('history-detail');
+}
+
+function copyDetailText(shopId,monthKey){
+  const rec=(history[shopId]||[]).find(r=>r.monthKey===monthKey);
+  if(!rec)return;
+  const s=shop(shopId);
+  const savedPreview=previewRec;
+  previewRec={...rec,shopId};
+  copyBillText();
+  previewRec=savedPreview;
+}
+
+function delRecord(shopId,monthKey){
+  if(!confirm(`ต้องการลบข้อมูลเดือน ${keyLabel(monthKey)} ใช่หรือไม่?`))return;
+  history[shopId]=(history[shopId]||[]).filter(r=>r.monthKey!==monthKey);
+  save();toast('🗑️ ลบข้อมูลแล้ว');openHistory(shopId);
+  pushToSheet('delete',{shopId,monthKey},null);
+}
+
+// ─── MODAL ───────────────────────────────────
+function closeModal(){document.querySelectorAll('.modal-bg').forEach(m=>m.classList.remove('on'))}
+document.querySelectorAll('.modal-bg').forEach(m=>{m.addEventListener('click',e=>{if(e.target===m)closeModal()})});
+
+// ─── INIT ────────────────────────────────────
+load();renderHome();
+syncFromSheet(); // โหลดข้อมูลล่าสุดจาก Google Sheet ตอนเปิดแอป
+</script>
+</body>
+</html>
